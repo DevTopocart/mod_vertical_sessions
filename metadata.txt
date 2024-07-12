@@ -1,0 +1,47 @@
+# This file contains metadata for your plugin.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=T Vertical Sessions
+qgisMinimumVersion=3.20
+description=Used to Vertical Sessions of Lidar Point Cloud
+version=1.01
+author=Consultoria/ Topocart
+email=contato@topocart.com.br
+
+about=This plugin is developed for Point Cloud user that wants to visualize that type of data in a vertical session.
+
+tracker=http://bugs
+repository=http://repo
+# End of mandatory metadata
+
+# Recommended items:
+
+hasProcessingProvider=no
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=python, point cloud
+
+homepage=http://homepage
+category=Plugins
+icon=icons/icon_vs.png
+# experimental flag
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
+# Since QGIS 3.8, a comma separated list of plugins to be installed
+# (or upgraded) can be specified.
+# Check the documentation for more information.
+# plugin_dependencies=
+
+Category of the plugin: Raster, Vector, Database or Web
+# category=Vector
+
+# If the plugin can run on QGIS Server.
+server=False
+
