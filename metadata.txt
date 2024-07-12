@@ -27,7 +27,7 @@ tags=python, point cloud
 
 homepage=http://homepage
 category=Plugins
-icon=icons/icon_vs.png
+icon=icons/icon_session.png
 # experimental flag
 experimental=False
 
