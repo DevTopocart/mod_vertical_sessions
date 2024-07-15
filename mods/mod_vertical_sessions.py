@@ -260,7 +260,7 @@ class WdVS(QWidget):
         self.w_ = 2
         self.z_ = None
         self.cloud_layer_catalog = None
-
+        self.dic_cur_ax = {}
     def create_layout(self):
         gl_prof = QGridLayout()
         gl_prof.setContentsMargins(0, 0, 0, 0)
@@ -313,7 +313,7 @@ class WdVS(QWidget):
 
         self.le_hand_width = QLineEdit()
         self.le_hand_width.setEnabled(False)
-        self.le_hand_width.setText('0.1')
+        self.le_hand_width.setText('10.0')
         self.le_hand_width.setMaximumWidth(50)
         self.le_hand_width.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         validator = QRegExpValidator(QRegExp(r'[0-9].+'))
@@ -370,10 +370,10 @@ class WdVS(QWidget):
         self.le_interval.setValidator(validator)
         gl_tool.addWidget(self.le_interval, r_, 2, 1, 2)
 
-        f_ = QFrame()
-        f_.setFrameShape(QFrame.HLine)
-        r_ += 1
-        gl_tool.addWidget(f_, r_, 1, 1, 3)
+        # f_ = QFrame()
+        # f_.setFrameShape(QFrame.HLine)
+        # r_ += 1
+        # gl_tool.addWidget(f_, r_, 1, 1, 3)
 
         self.chk_follow_line = QCheckBox('Follow Alignment:')
         self.chk_follow_line.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -394,6 +394,15 @@ class WdVS(QWidget):
         self.pb_get_feature.setEnabled(False)
         r_ += 1
         gl_tool.addWidget(self.pb_get_feature, r_, 1, 1, 2)
+
+        self.le_cur_step = QLineEdit()
+        self.le_cur_step.setEnabled(False)
+        self.le_cur_step.setText('0.0')
+        self.le_cur_step.setMaximumWidth(50)
+        self.le_cur_step.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        validator = QRegExpValidator(QRegExp(r'[0-9].+'))
+        self.le_cur_step.setValidator(validator)
+        gl_tool.addWidget(self.le_cur_step, r_, 3)
 
         r_ += 1
         gl_tool.addItem(QSpacerItem(10, 10, QSizePolicy.Minimum, QSizePolicy.Expanding), r_, 0)
@@ -417,19 +426,20 @@ class WdVS(QWidget):
         gl_layer.addWidget(QLabel('Symbology:'), rr_, 1, 1, 2)
         gen_group = QButtonGroup(self)
         self.rb_symb_canvas = QRadioButton('Like Canvas')
-        self.rb_symb_canvas.setChecked(True)
         gen_group.addButton(self.rb_symb_canvas)
         rr_ += 1
         gl_layer.addWidget(self.rb_symb_canvas, rr_, 1, 1, 2)
 
         self.rb_symb_pers = QRadioButton('Personalized')
         gen_group.addButton(self.rb_symb_pers)
+        self.rb_symb_pers.setChecked(True)
         rr_ += 1
         gl_layer.addWidget(self.rb_symb_pers, rr_, 1, 1, 2)
 
         self.cmb_pers_symb = QComboBox()
         self.cmb_pers_symb.setEnabled(False)
         self.cmb_pers_symb.addItems(['Intensity', 'RGB', 'CLASS', 'Elevation', 'Point Source ID', 'PSID + Intensity'])
+        self.cmb_pers_symb.setCurrentText('CLASS')
         rr_ += 1
         gl_layer.addWidget(self.cmb_pers_symb, rr_, 1)
 
@@ -488,32 +498,18 @@ class WdVS(QWidget):
         return lg_sa
 
     def trigger_actions(self):
-
-        # self.action_pass.triggered.connect(self.toggle_visibility)
-        # QgsProject.instance().homePathChanged.connect(self.check_proj)
-        # # self.gvw_360.mouseDoubleClickEvent = self.show_picture
-        # for tag_ in self.dic_player:
-        #     self.dic_player[tag_].clicked.connect(partial(self.player, tag_))
-        #
-        # self.cmb_dom_grp_inv.currentIndexChanged.connect(self.fill_twd_att)
-        # self.chk_show_cloud.toggled.connect(self.show_cloud)
-        # self.pb_new_2d.clicked.connect(self.get_2d_point)
-        # self.pb_add_cloud.clicked.connect(self.add_cloud)
         self.btn_group.buttonClicked[int].connect(self.move_fp)
         self.pb_def_fp.clicked.connect(self.get_fp)
         self.chk_hand_width.toggled.connect(lambda is_chk: self.le_hand_width.setEnabled(is_chk))
         self.chk_hand_length.toggled.connect(lambda is_chk: self.le_hand_length.setEnabled(is_chk))
+        self.mlcb_layer.layerChanged.connect(self.clear_dic_ax)
+        self.pb_get_feature.clicked.connect(self.clear_dic_ax)
         self.chk_follow_line.toggled.connect(self.enable_follow_line)
         self.spb_point_size.valueChanged.connect(self.update_session_painter)
         self.pb_set_dens.clicked.connect(self.get_max_dens_fp)
         QgsProject.instance().layersAdded.connect(self.layer_added)
         QgsProject.instance().layersRemoved.connect(self.layer_removed)
-        # self.mlcb_point.layerChanged.connect(self.add_vrt)
-        #
-        # self.pb_filter_front.clicked.connect(partial(self.nav_filter, '>'))
-        # self.pb_filter_back.clicked.connect(partial(self.nav_filter, '<'))
-        # self.pb_filter_set.clicked.connect(self.filter_settings)
-        # self.pb_filter_list.clicked.connect(self.calc_step)
+
 
     def config_rubber_bands(self):
 
@@ -548,6 +544,7 @@ class WdVS(QWidget):
 
     def select_fp(self, dic_):
         print('select_fp')
+        self.dic_layers_tools['track']['rb'].reset()
         if 'line' in dic_:
             self.dic_layers_tools['line']['rb'].reset()
             self.dic_layers_tools['line']['rb'].setToGeometry(dic_['line'])
@@ -560,7 +557,6 @@ class WdVS(QWidget):
         if 'reset' in dic_:
             self.dic_layers_tools['rec']['rb'].reset()
             self.dic_layers_tools['line']['rb'].reset()
-            self.dic_layers_tools['track']['rb'].reset()
             self.wdl_prof.p_track = None
             self.wdl_prof.update()
 
@@ -574,16 +570,68 @@ class WdVS(QWidget):
         self.iface.mapCanvas().setMapTool(mt_)
 
     def move_fp(self, bt_):
+        sign_ = int(bt_ / 10)
         print('move_fp', bt_)
-        geom_ = self.dic_layers_tools['line']['rb'].asGeometry()
-        stt_point = QgsPoint(geom_.asPolyline()[0])
-        end_point = QgsPoint(geom_.asPolyline()[-1])
-        az_ = stt_point.azimuth(end_point)
-        i_ = float(self.le_interval.text())
-        p1 = calc_proj(stt_point, (90 * bt_/10) + az_, i_)
-        p2 = calc_proj(end_point, (90 * bt_/10) + az_, i_)
-        line_ = QgsGeometry().fromPolylineXY([p1, p2])
-        d_ = float(self.le_hand_width.text())
+        if self.chk_follow_line.isChecked() and self.mlcb_layer.currentLayer():
+            if not self.dic_cur_ax:
+                if self.mlcb_layer.currentLayer().selectedFeatureCount():
+                    feats_ = self.mlcb_layer.currentLayer().getSelectedFeatures()
+                else:
+                    feats_ = self.mlcb_layer.currentLayer().getFeatures()
+                dic_data = {}
+                for i, feat_ in enumerate(feats_):
+                    id_ = feat_.id()
+                    geom_ = feat_.geometry()
+                    len_ = geom_.length()
+                    dic_data.update({id_: len_})
+                    # print(id_, len_)
+                self.dic_cur_ax['dic_len'] = dic_data
+                self.dic_cur_ax['id'] = list(dic_data)[0]
+
+            v_ = float(self.le_interval.text())
+            step_ = float(self.le_cur_step.text()) + sign_ * v_
+            id_ = self.dic_cur_ax['id']
+            print(v_, step_, self.dic_cur_ax['dic_len'][id_], id_)
+            if step_ <= 0  or self.dic_cur_ax['dic_len'][id_] <= step_:
+                if float(self.le_cur_step.text()) == 0 or float(self.le_cur_step.text()) == self.dic_cur_ax['dic_len'][id_]:
+                    print('next feature')
+                    temp = list(self.dic_cur_ax['dic_len'])
+                    try:
+                        id_ = temp[temp.index(id_ + sign_)]
+                        if step_ <= 0:
+                            step_ = self.dic_cur_ax['dic_len'][id_]
+                        else:
+                            step_ = 0
+                    except (ValueError, IndexError):
+                        return
+                else:
+                    if step_ <= 0:
+                        step_ = 0
+                    else:
+                        step_ = self.dic_cur_ax['dic_len'][id_]
+            self.le_cur_step.setText((f'{step_:0.1f}'))
+            geom_ = self.mlcb_layer.currentLayer().getFeature(id_).geometry()
+            pi_ = geom_.interpolate(step_).asPoint()
+            az_ = math.degrees(geom_.interpolateAngle(step_))
+            print('az_=', az_)
+            l_ = float(self.le_hand_length.text()) / 2
+            p1 = calc_proj(pi_, az_ - 90, l_)
+            p2 = calc_proj(pi_, az_ + 90, l_)
+            line_ = QgsGeometry().fromPolylineXY([p1, p2])
+            az_ += 90
+
+        elif not self.dic_layers_tools['line']['rb'].asGeometry().isNull():
+            geom_ = self.dic_layers_tools['line']['rb'].asGeometry()
+            stt_point = QgsPoint(geom_.asPolyline()[0])
+            end_point = QgsPoint(geom_.asPolyline()[-1])
+            az_ = stt_point.azimuth(end_point)
+            i_ = float(self.le_interval.text())
+            p1 = calc_proj(stt_point, (90 * bt_/10) + az_, i_)
+            p2 = calc_proj(end_point, (90 * bt_/10) + az_, i_)
+            line_ = QgsGeometry().fromPolylineXY([p1, p2])
+        else:
+            return
+        d_ = float(self.le_hand_width.text()) / 2
         pr1 = calc_proj(p1, az_ - 90, d_)
         pr2 = calc_proj(p2, az_ - 90, d_)
         pr3 = calc_proj(p2, az_ + 90, d_)
@@ -592,9 +640,9 @@ class WdVS(QWidget):
         self.select_fp({'line': line_, 'rec': pol_, 'identify': True})
 
     def enable_follow_line(self, is_chk):
-        # self.le_hand_width.setEnabled(is_chk)
         self.mlcb_layer.setEnabled(is_chk)
         self.pb_get_feature.setEnabled(is_chk)
+        self.le_cur_step.setEnabled(is_chk)
 
     def identify_cloud(self, stats=False):
         print('identify_cloud')
@@ -676,13 +724,13 @@ class WdVS(QWidget):
             for layer_ in slot_:
                 for feat_cat in self.cloud_layer_catalog.getFeatures():
                     print(feat_cat['nome_layer'], layer_[:len(feat_cat['nome_layer'])])
-                    if feat_cat['nome_layer'].replace('-', '_') == layer_[:len(feat_cat['nome_layer'])]:
+                    if feat_cat['nome_layer'].replace('-', '_').replace('.', '_') == layer_[:len(feat_cat['nome_layer'])]:
                         self.cloud_layer_catalog.deleteFeature(feat_cat.id())
+                        print('removed')
                         break
                 self.cloud_layer_catalog.updateExtents()
             self.cloud_layer_catalog.commitChanges()
             self.cloud_layer_catalog.triggerRepaint()
-
     # def add_vrt(self, slot_):
     #     # print('add_vrt', slot_, self.mlcb_point.additionalItems())
     #     if not slot_:
@@ -800,12 +848,14 @@ class WdVS(QWidget):
     #                                 {fld_art_path} <> \'{path_}\';
     #                         """
     #                     self.db.query_(str_query)
-
-
     def set_track_rb(self, lt_=None):
         self.dic_layers_tools['track']['rb'].reset()
         if lt_:
             self.dic_layers_tools['track']['rb'].setToGeometry(lt_)
+
+    def clear_dic_ax(self):
+        self.le_cur_step.setText('0.0')
+        self.dic_cur_ax = {}
 
     def update_session_painter(self, v_=None):
         print('update_session_paint', v_)
@@ -880,7 +930,6 @@ class SelectFootPrint(QgsMapToolIdentify):
             self.p3 = None
 
     def canvasMoveEvent(self, evt_):
-        # print('canvasMoveEvent')
         if self.p3:
             pass
         elif self.p2:
@@ -916,7 +965,7 @@ class SelectFootPrint(QgsMapToolIdentify):
             self.geom_l = QgsGeometry().fromPolylineXY([self.p1, self.p2])
             self.parent.select_fp({'line': self.geom_l})
             if self.parent.chk_hand_width.isChecked():
-                w_ = float(self.parent.le_hand_width.text())
+                w_ = float(self.parent.le_hand_width.text()) / 2
                 self.geom_r = self.buffer_line(w_)
                 self.parent.select_fp({'rec': self.geom_r, 'identify': True})
                 self.p3 = True
@@ -957,8 +1006,7 @@ class ProfileView(QWidget):
         self.fps = 18
         self.list_spiral = []
         self.dic_t = {}
-        self.dic_d = {}
-        self.dic_c = {}
+        self.dic_l = {}
         self.p_track = None
 
     def paintEvent(self, paint_event):
@@ -975,19 +1023,22 @@ class ProfileView(QWidget):
 
         painter.setRenderHint(QPainter.Antialiasing, True)
         if self.dic_t:
-            for coord_ in self.dic_d:
-                if not self.dic_d:
-                    break
-                for dep_ in self.dic_d[coord_]:
-                    if not self.dic_d:
+            for ln_ in self.dic_l:
+                dic_c = self.dic_l[ln_]['color']
+                dic_d = self.dic_l[ln_]['pcs']
+                for coord_ in dic_d:
+                    if not dic_d:
                         break
-                    d_ = self.dic_d[coord_][dep_]
-                    c_ = d_['C']
-                    if c_ in self.dic_c:
-                        pen.setColor(self.dic_c[c_])
-                        pen.setCapStyle(Qt.FlatCap)
-                        painter.setPen(pen)
-                        painter.drawPoint(d_['X'], d_['Y'])
+                    for dep_ in dic_d[coord_]:
+                        if not dic_d:
+                            break
+                        d_ = dic_d[coord_][dep_]
+                        c_ = d_['C']
+                        if c_ in dic_c:
+                            pen.setColor(dic_c[c_])
+                            pen.setCapStyle(Qt.FlatCap)
+                            painter.setPen(pen)
+                            painter.drawPoint(d_['X'], d_['Y'])
 
         if not self.mp_:
             self.mp_ = QPoint(int(self.width() / 2), self.height())
@@ -1048,7 +1099,7 @@ class ProfileView(QWidget):
 
     def mouseReleaseEvent(self, evt_):
         if self.p1 == evt_.pos():
-            if not self.dic_d:
+            if not self.dic_l:
                 return
             self.mp_ = evt_.pos()
             self.x_value = (self.dic_t[f'D_min'] +
@@ -1057,8 +1108,8 @@ class ProfileView(QWidget):
                             (1 - self.mp_.y() / self.height()) * (self.dic_t['Z_max'] - self.dic_t['Z_min']))
             if y_ < self.y_value:
                 self.y_value = y_
-            if not self.list_spiral:
-                self.list_spiral = self.calc_spiral()
+            # if not self.list_spiral:
+            #     self.list_spiral = self.calc_spiral()
         else:
             self.p2 = evt_.pos()
         self.update()
@@ -1069,7 +1120,7 @@ class ProfileView(QWidget):
         self.p1 = evt_.pos()
 
     def mouseMoveEvent(self, evt_):
-        if not self.dic_d:
+        if not self.dic_l:
             return
         if self.p1 and evt_.buttons() != Qt.NoButton:
             self.p2 = evt_.pos()
@@ -1081,7 +1132,6 @@ class ProfileView(QWidget):
                 az_ = pt0_.azimuth(pt1_)
                 len_l = pt0_.distance(pt1_)
                 self.dic_t['track'] = {'az': az_, 'len_l': len_l}
-                # self.dic_t['track'] = {'e': pt0_.x(), 'n': pt1_.x()}
                 lf_ = self.dic_t['LF'].asPolyline()
                 pt2_ = QgsPoint(lf_[0])
                 pt3_ = QgsPoint(lf_[1])
@@ -1108,7 +1158,6 @@ class ProfileView(QWidget):
     def mouseDoubleClickEvent(self, a0):
         self.y_value = (self.dic_t['Z_min'] +
               (1 - self.mp_.y() / self.height()) * (self.dic_t['Z_max'] - self.dic_t['Z_min']))
-        # print(self.y_value)
 
     def reset(self):
         self.list_ = []
@@ -1117,29 +1166,28 @@ class ProfileView(QWidget):
         self.x_value = 0
         self.y_value = 999999
         self.update()
-    @staticmethod
-    def calc_spiral(ws_=9):
-        x = y = 0
-        dx = 0
-        dy = -1
-        list_ = []
-        for i in range(ws_ ** 2):
-            if (-ws_ / 2 < x <= ws_ / 2) and (-ws_ / 2 < y <= ws_ / 2):
-                list_.append((x, y))
-            if x == y or (x < 0 and x == -y) or (x > 0 and x == 1 - y):
-                dx, dy = -dy, dx
-            x, y = x + dx, y + dy
-        return list_
+    # @staticmethod
+    # def calc_spiral(ws_=9):
+    #     x = y = 0
+    #     dx = 0
+    #     dy = -1
+    #     list_ = []
+    #     for i in range(ws_ ** 2):
+    #         if (-ws_ / 2 < x <= ws_ / 2) and (-ws_ / 2 < y <= ws_ / 2):
+    #             list_.append((x, y))
+    #         if x == y or (x < 0 and x == -y) or (x > 0 and x == 1 - y):
+    #             dx, dy = -dy, dx
+    #         x, y = x + dx, y + dy
+    #     return list_
 
     def update_painter(self, dic_):
-        self.dic_d = dic_['d']
-        self.dic_c = dic_['c']
+        print('update_painter')
+        self.dic_l = dic_
         self.update()
 
 
 class CloudThread(QThread):
     sig_status = pyqtSignal(list, dict)
-    # sig_error = pyqtSignal(dict)
 
     def __init__(self, main, parent, dic_, list_layer=None, stats=False):
         QThread.__init__(self)
@@ -1152,12 +1200,15 @@ class CloudThread(QThread):
         self.list_layer = list_layer
         self.stop = False
         self.dic_class_color = {}
+        self.dic_layer_pcs = {}
         self.dic_layer_quant = {}
         self.list_pc = []
 
+
     def run(self):
-        # print('run', math.degrees(self.dic_['pit']))
-        # self.check_az_range()
+        lt_ = []
+        lt_.append(dt.now())
+        print(lt_[-1])
         if self.stats:
             dens_ = 0
             for layer_ in self.list_layer:
@@ -1175,136 +1226,150 @@ class CloudThread(QThread):
             self.parent.le_max_dens.setText(f'{dens_:0.1f}')
             return
 
+        # area_ = self.pol_.area()
+        # quant_ = 1000
+        # press_ = 1
+        # list_ = []
+        # while press_ > 0.00001:
+        #     quant_ *= 10
+        #     dens_ = quant_ / area_
+        #     press_ = (1/dens_) ** 0.5
+        #     list_.append((press_, quant_))
+        # print(list_)
+        press_ = 0.001
         area_ = self.pol_.area()
-        quant_ = 1000
-        press_ = 1
-        list_ = []
-        while press_ > 0.00001:
-            quant_ *= 10
-            dens_ = quant_ / area_
-            press_ = (1/dens_) ** 0.5
-            list_.append((press_, quant_))
-        print(list_)
+        # quant_ = area_ / (press_ ** 2)
+        quant_ = 1000000
 
-        for max_err, p_limit in list_:
-        # for max_err, p_limit in [(0.10, 10000)]:
-            dic_threshold = {
-                'D0_min': 99999.0,
-                'D0_max': 0.0,
-                'D1_min': 99999.0,
-                'D1_max': 0.0,
-                'P0_min': 0.0,
-                'P0_max': 0.0,
-                'P1_min': 0.0,
-                'P1_max': 0.0,
-                'Z_min': 99999.0,
-                'Z_max': -99999.0,
-                'I_min': 99999,
-                'I_max': -99999,
-            }
-            for layer_ in self.list_layer:
-                prov_ = layer_.dataProvider()
+        for layer_ in self.list_layer:
+            if layer_.name() not in self.dic_class_color:
+                self.dic_class_color[layer_.name()] = {}
+                for cat_ in layer_.renderer().categories():
+                    if cat_.renderState():
+                        self.dic_class_color[layer_.name()].update({cat_.value(): cat_.color()})
+        #
+        # for max_err, p_limit in list_:
+        #     print('max_err=', max_err, 'p_limit=', p_limit)
+        self.dic_threshold = {
+            'D_min': 99999.0,
+            'D_max': 0.0,
+            'P_min': 0.0,
+            'P_max': 0.0,
+            'Z_min': 99999.0,
+            'Z_max': -99999.0,
+            'I_min': 99999,
+            'I_max': -99999,
+        }
+        for layer_ in self.list_layer:
+            prov_ = layer_.dataProvider()
+            layer_name = layer_.name()
 
-                if layer_.name() not in self.dic_class_color:
-                    self.dic_class_color[layer_.name()] = {}
-                    for cat_ in layer_.renderer().categories():
-                        if cat_.renderState():
-                            self.dic_class_color[layer_.name()].update({cat_.value(): cat_.color()})
-                if layer_.name() in self.dic_layer_quant and self.dic_layer_quant[layer_.name()] == 'break':
-                    continue
-                self.list_pc = prov_.identify(maxErrorInMapCoords=max_err, extentGeometry=self.pol_, pointsLimit=p_limit)
-                print('quant_=', len(self.list_pc))
-                if layer_.name() not in self.dic_layer_quant:
-                    self.dic_layer_quant[layer_.name()] = len(self.list_pc)
-                elif len(self.list_pc) <= self.dic_layer_quant[layer_.name()]:
-                    self.dic_layer_quant[layer_.name()] = 'break'
-                    print(layer_.name(), 'break', len(self.list_pc), self.dic_layer_quant[layer_.name()])
-                    continue
-                else:
-                    self.dic_layer_quant[layer_.name()] = len(self.list_pc)
-
-                if not self.list_pc:
-                    continue
-                for pc_ in self.list_pc:
-                    if self.stop:
-                        return
-                    if pc_['Classification'] not in self.dic_class_color[layer_.name()]:
-                        continue
-                    p_l = QgsGeometry(QgsPoint(pc_['X'], pc_['Y']))
-                    for i, ll_, lf_  in self.dic_['rll']:
-                        d_n = ll_.distance(p_l)
-
-                        pc_[f'D{i}'] = d_n
-                        if d_n < dic_threshold[f'D{i}_min']:
-                            dic_threshold[f'D{i}_min'] = d_n
-                        elif d_n > dic_threshold[f'D{i}_max']:
-                            dic_threshold[f'D{i}_max'] = d_n
-
-                        dep_n = lf_.distance(p_l)
-                        pc_[f'P{i}'] = dep_n
-                        if not dic_threshold[f'P{i}_max']:
-                            dic_threshold[f'P{i}_max'] = lf_.length()
-
-                    z_n = pc_['Z']
-                    if z_n < dic_threshold['Z_min']:
-                        dic_threshold['Z_min'] = z_n
-                    elif z_n > dic_threshold['Z_max']:
-                        dic_threshold['Z_max'] = z_n
-
-                    i_n = pc_['Intensity']
-                    if i_n < dic_threshold['I_min']:
-                        dic_threshold['I_min'] = i_n
-                    elif i_n > dic_threshold['I_max']:
-                        dic_threshold['I_max'] = i_n
-
-                self.calc_poins(self.list_pc, dic_threshold, layer_.name())
-
-    def calc_poins(self, list_in, dic_t, layer_):
-        # print('calc_poins', 'circ=', 'circ' in self.dic_)
-
-        list_wdl = [self.parent.wdl_prof]
-        h_ = self.parent.wdl_prof.height()
-        w_ = self.parent.wdl_prof.width()
-        for i, wdl_ in enumerate(list_wdl):
-            dic_t['D_min'] = dic_t[f'D{i}_min']
-            dic_t['D_max'] = dic_t[f'D{i}_max']
-            dic_t['P_min'] = dic_t[f'D{i}_min']
-            dic_t['P_max'] = dic_t[f'D{i}_max']
-            dic_t['LL'] = self.dic_['rll'][i][1]
-            dic_t['LF'] = self.dic_['rll'][i][2]
-            dic_aux = {}
-            for tag_ in dic_t:
-                dic_aux[tag_] = dic_t[tag_]
-            wdl_.dic_t = dic_aux
-            wdl_.y_value = 999999
-            wdl_.mp_ = None
-
-        dic_0 = {}
-
-        for dic_p in list_in:
-            if self.stop:
-                return
-            if not 'D0' in dic_p:
+            if layer_name in self.dic_layer_quant and self.dic_layer_quant[layer_name] == 'break':
                 continue
-            y_ = int(h_ * (1  - (dic_p['Z'] - dic_t['Z_min']) / (dic_t['Z_max'] - dic_t['Z_min'])))
-            x_0 = int((dic_p['D0'] - dic_t['D0_min']) * w_ / (dic_t['D0_max'] - dic_t['D0_min']))
-            p_0 = dic_p['P0']
-            i_ = int((dic_p['Intensity'] - dic_t['I_min']) * 255 / (dic_t['I_max'] - dic_t['I_min']))
-            c_ = int(dic_p['Classification'])
-            r_ = int(dic_p['Red'] / 256) if 'Red' in dic_p else 0
-            g_ = int(dic_p['Green'] / 256) if 'Green' in dic_p else 0
-            b_ = int(dic_p['Blue'] / 256) if 'Blue' in dic_p else 0
-            e_ = round(dic_p['X'], 4)
-            n_ = round(dic_p['Y'], 4)
+            # list_pc = prov_.identify(maxErrorInMapCoords=max_err, extentGeometry=self.pol_, pointsLimit=p_limit)
+            list_pc = prov_.identify(maxErrorInMapCoords=press_, extentGeometry=self.pol_, pointsLimit=quant_)
+            print('len(list_pc)=', len(list_pc))
+            self.dic_layer_pcs[layer_name] = list_pc
+            # print(layer_name, 'quant_=', len(list_pc))
+        #     if layer_name not in self.dic_layer_quant:
+        #         self.dic_layer_pcs[layer_name] = list_pc
+        #         self.dic_layer_quant[layer_name] = len(self.list_pc)
+        #     elif len(self.list_pc) <= self.dic_layer_quant[layer_name]:
+        #         self.dic_layer_quant[layer_name] = 'break'
+        #         # print(layer_name, 'break', len(self.list_pc), self.dic_layer_quant[layer_name])
+        #         continue
+        #     else:
+        #         self.dic_layer_quant[layer_name] = len(self.list_pc)
+        #         self.dic_layer_pcs[layer_name] = list_pc
+        #
+        # for layer_name in self.dic_layer_pcs:
+        #     list_pc = self.dic_layer_pcs[layer_name]
 
-            if f'{x_0},{y_}' not in dic_0:
-                dic_0[f'{x_0},{y_}'] = {f'{p_0:.4f}':
-                    {'X': x_0, 'Y': y_, 'P': p_0, 'I': i_, 'R': r_, 'G': g_, 'B': b_, 'C': c_, 'E': e_, 'N': n_}}
-            else:
-                dic_0[f'{x_0},{y_}'][f'{p_0:.4f}'] = \
-                    {'X': x_0, 'Y': y_, 'P': p_0, 'I': i_, 'R': r_, 'G': g_, 'B': b_, 'C': c_, 'E': e_, 'N': n_}
+            if not list_pc:
+                continue
+            for pc_ in list_pc:
+                if self.stop:
+                    return
+                if pc_['Classification'] not in self.dic_class_color[layer_name]:
+                    continue
+                p_l = QgsGeometry(QgsPoint(pc_['X'], pc_['Y']))
+                for i, ll_, lf_  in self.dic_['rll']:
+                    d_n = ll_.distance(p_l)
 
-        self.parent.wdl_prof.update_painter({'d':dic_0, 'c':self.dic_class_color[layer_]})
+                    pc_['D'] = d_n
+                    if d_n < self.dic_threshold['D_min']:
+                        self.dic_threshold['D_min'] = d_n
+                    elif d_n > self.dic_threshold['D_max']:
+                        self.dic_threshold['D_max'] = d_n
+
+                    dep_n = lf_.distance(p_l)
+                    pc_['P'] = dep_n
+                    if not self.dic_threshold['P_max']:
+                        self.dic_threshold['P_max'] = lf_.length()
+
+                z_n = pc_['Z']
+                if z_n < self.dic_threshold['Z_min']:
+                    self.dic_threshold['Z_min'] = z_n
+                elif z_n > self.dic_threshold['Z_max']:
+                    self.dic_threshold['Z_max'] = z_n
+
+                i_n = pc_['Intensity']
+                if i_n < self.dic_threshold['I_min']:
+                    self.dic_threshold['I_min'] = i_n
+                elif i_n > self.dic_threshold['I_max']:
+                    self.dic_threshold['I_max'] = i_n
+
+        self.calc_poins()
+
+    def calc_poins(self):
+        print('calc_poins')
+
+        wdl_ = self.parent.wdl_prof
+        h_ = wdl_.height()
+        w_ = wdl_.width()
+        dic_t = {}
+        dic_t['LL'] = self.dic_['rll'][0][1]
+        dic_t['LF'] = self.dic_['rll'][0][2]
+        for tag_ in self.dic_threshold:
+            dic_t[tag_] = self.dic_threshold[tag_]
+        dic_aux = {}
+        for tag_ in dic_t:
+            dic_aux[tag_] = dic_t[tag_]
+        wdl_.dic_t = dic_aux
+        wdl_.y_value = 999999
+        wdl_.mp_ = None
+
+        dic_l = {}
+        for layer_name in self.dic_layer_pcs:
+            dic_l[layer_name] = {'color': self.dic_class_color[layer_name]}
+            list_pc = self.dic_layer_pcs[layer_name]
+            dic_0 = {}
+            if not list_pc:
+                continue
+            for pc_ in list_pc:
+                if self.stop:
+                    return
+                if not 'D' in pc_:
+                    continue
+                y_ = int(h_ * (1  - (pc_['Z'] - dic_t['Z_min']) / (dic_t['Z_max'] - dic_t['Z_min'])))
+                x_ = int((pc_['D'] - dic_t['D_min']) * w_ / (dic_t['D_max'] - dic_t['D_min']))
+                p_ = pc_['P']
+                i_ = int((pc_['Intensity'] - dic_t['I_min']) * 255 / (dic_t['I_max'] - dic_t['I_min']))
+                c_ = int(pc_['Classification'])
+                r_ = int(pc_['Red'] / 256) if 'Red' in pc_ else 0
+                g_ = int(pc_['Green'] / 256) if 'Green' in pc_ else 0
+                b_ = int(pc_['Blue'] / 256) if 'Blue' in pc_ else 0
+                e_ = round(pc_['X'], 4)
+                n_ = round(pc_['Y'], 4)
+    
+                if f'{x_},{y_}' not in dic_0:
+                    dic_0[f'{x_},{y_}'] = {f'{p_:.4f}':
+                        {'X': x_, 'Y': y_, 'P': p_, 'I': i_, 'R': r_, 'G': g_, 'B': b_, 'C': c_, 'E': e_, 'N': n_}}
+                else:
+                    dic_0[f'{x_},{y_}'][f'{p_:.4f}'] = \
+                        {'X': x_, 'Y': y_, 'P': p_, 'I': i_, 'R': r_, 'G': g_, 'B': b_, 'C': c_, 'E': e_, 'N': n_}
+            dic_l[layer_name].update({'pcs': dic_0})
+        self.parent.wdl_prof.update_painter(dic_l)
 
 
 def calc_proj(p_, az_, d_):
