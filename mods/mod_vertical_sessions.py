@@ -496,7 +496,7 @@ class WdVS(QWidget):
         self.spb_point_size.valueChanged.connect(self.update_session_painter)
         self.cmb_pers_symb.currentTextChanged.connect(self.wdl_prof.update)
         self.pb_set_dens.clicked.connect(self.get_max_dens_fp)
-        self.pb_get_feature.clicked.connect(lambda x: self.iface.actionSelect().trigger)
+        self.pb_get_feature.clicked.connect(self.select_tool)
         QgsProject.instance().layersAdded.connect(self.layer_added)
         QgsProject.instance().layersRemoved.connect(self.layer_removed)
 
@@ -731,6 +731,9 @@ class WdVS(QWidget):
         print('update_session_paint', v_)
         if self.wdl_prof:
             self.wdl_prof.update()
+
+    def select_tool(self):
+        self.iface.actionSelect().trigger()
 
 
 class SelectFootPrint(QgsMapToolIdentify):
