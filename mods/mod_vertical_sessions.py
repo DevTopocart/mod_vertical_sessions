@@ -26,18 +26,18 @@
 
 import math
 import os
-import json
 from datetime import datetime as dt
+import matplotlib
 from PyQt5.QtCore import QPoint, QThread, pyqtSignal, QRegExp, QVariant
 from PyQt5.QtGui import QPainter, QPen, QRegExpValidator
-from PyQt5.QtWidgets import QRadioButton, QButtonGroup, QHBoxLayout, QSpinBox
+from PyQt5.QtWidgets import QButtonGroup, QHBoxLayout, QSpinBox
 from qgis.PyQt.QtCore import QSettings, Qt, QSize, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QCursor, QPixmap, QIcon, QColor, QFont
-from qgis.PyQt.QtWidgets import (QAction, QScrollArea, QFileDialog, QGridLayout, QPushButton, QComboBox, QLabel,
-                                 QCheckBox, QLineEdit, QFrame, QWidget, QSizePolicy, QSpacerItem, QDockWidget, QSplitter)
+from qgis.PyQt.QtWidgets import (QAction, QScrollArea, QGridLayout, QPushButton, QComboBox, QLabel, QCheckBox,
+                                 QLineEdit, QFrame, QWidget, QSizePolicy, QSpacerItem, QDockWidget, QSplitter)
 from qgis.PyQt import QtCore
-from qgis.core import (QgsPointXY, QgsPointCloudLayer, QgsFields, QgsField, QgsFeature, QgsPoint,
-                       QgsGeometry, QgsProject, QgsWkbTypes, QgsDataSourceUri, QgsVectorLayer, QgsMapLayerProxyModel)
+from qgis.core import (QgsPointXY, QgsFields, QgsField, QgsFeature, QgsPoint,QgsGeometry, QgsProject, QgsWkbTypes,
+                       QgsVectorLayer, QgsMapLayerProxyModel)
 from qgis.gui import QgsMapToolIdentify, QgsRubberBand, QgsMapLayerComboBox, QgsAdvancedDigitizingDockWidget
 
 
@@ -261,6 +261,7 @@ class WdVS(QWidget):
         self.z_ = None
         self.cloud_layer_catalog = None
         self.dic_cur_ax = {}
+
     def create_layout(self):
         gl_prof = QGridLayout()
         gl_prof.setContentsMargins(0, 0, 0, 0)
@@ -327,7 +328,7 @@ class WdVS(QWidget):
 
         self.le_hand_length = QLineEdit()
         self.le_hand_length.setEnabled(False)
-        self.le_hand_length.setText('10.0')
+        self.le_hand_length.setText('100.0')
         self.le_hand_length.setMaximumWidth(50)
         self.le_hand_length.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         validator = QRegExpValidator(QRegExp(r'[0-9].+'))
@@ -370,11 +371,6 @@ class WdVS(QWidget):
         self.le_interval.setValidator(validator)
         gl_tool.addWidget(self.le_interval, r_, 2, 1, 2)
 
-        # f_ = QFrame()
-        # f_.setFrameShape(QFrame.HLine)
-        # r_ += 1
-        # gl_tool.addWidget(f_, r_, 1, 1, 3)
-
         self.chk_follow_line = QCheckBox('Follow Alignment:')
         self.chk_follow_line.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         r_ += 1
@@ -397,7 +393,7 @@ class WdVS(QWidget):
 
         self.le_cur_step = QLineEdit()
         self.le_cur_step.setEnabled(False)
-        self.le_cur_step.setText('0.0')
+        self.le_cur_step.setText('-')
         self.le_cur_step.setMaximumWidth(50)
         self.le_cur_step.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         validator = QRegExpValidator(QRegExp(r'[0-9].+'))
@@ -414,6 +410,8 @@ class WdVS(QWidget):
         spt_left.addWidget(wd_layer)
 
         lh_ = QHBoxLayout()
+        lh_.setContentsMargins(0, 0, 0, 0)
+        lh_.setSpacing(1)
         lh_.addWidget(QLabel('Point Size:'))
         self.spb_point_size = QSpinBox()
         self.spb_point_size.setValue(3)
@@ -424,21 +422,11 @@ class WdVS(QWidget):
 
         rr_ += 1
         gl_layer.addWidget(QLabel('Symbology:'), rr_, 1, 1, 2)
-        gen_group = QButtonGroup(self)
-        self.rb_symb_canvas = QRadioButton('Like Canvas')
-        gen_group.addButton(self.rb_symb_canvas)
-        rr_ += 1
-        gl_layer.addWidget(self.rb_symb_canvas, rr_, 1, 1, 2)
-
-        self.rb_symb_pers = QRadioButton('Personalized')
-        gen_group.addButton(self.rb_symb_pers)
-        self.rb_symb_pers.setChecked(True)
-        rr_ += 1
-        gl_layer.addWidget(self.rb_symb_pers, rr_, 1, 1, 2)
 
         self.cmb_pers_symb = QComboBox()
-        self.cmb_pers_symb.setEnabled(False)
-        self.cmb_pers_symb.addItems(['Intensity', 'RGB', 'CLASS', 'Elevation', 'Point Source ID', 'PSID + Intensity'])
+        self.cmb_pers_symb.setEnabled(True)
+        self.cmb_pers_symb.addItems(['RGB', 'CLASS', 'Intensity', 'Elevation', 'RGB + Intensity'])
+        # self.cmb_pers_symb.addItems(['Intensity', 'RGB', 'CLASS', 'Elevation', 'Point Source ID', 'PSID + Intensity'])
         self.cmb_pers_symb.setCurrentText('CLASS')
         rr_ += 1
         gl_layer.addWidget(self.cmb_pers_symb, rr_, 1)
@@ -506,10 +494,11 @@ class WdVS(QWidget):
         self.pb_get_feature.clicked.connect(self.clear_dic_ax)
         self.chk_follow_line.toggled.connect(self.enable_follow_line)
         self.spb_point_size.valueChanged.connect(self.update_session_painter)
+        self.cmb_pers_symb.currentTextChanged.connect(self.wdl_prof.update)
         self.pb_set_dens.clicked.connect(self.get_max_dens_fp)
+        self.pb_get_feature.clicked.connect(lambda x: self.iface.actionSelect().trigger)
         QgsProject.instance().layersAdded.connect(self.layer_added)
         QgsProject.instance().layersRemoved.connect(self.layer_removed)
-
 
     def config_rubber_bands(self):
 
@@ -589,10 +578,9 @@ class WdVS(QWidget):
                 self.dic_cur_ax['id'] = list(dic_data)[0]
 
             v_ = float(self.le_interval.text())
-            step_ = float(self.le_cur_step.text()) + sign_ * v_
+            step_ = 0.0 if self.le_cur_step.text() == '-' else float(self.le_cur_step.text()) + sign_ * v_
             id_ = self.dic_cur_ax['id']
-            print(v_, step_, self.dic_cur_ax['dic_len'][id_], id_)
-            if step_ <= 0  or self.dic_cur_ax['dic_len'][id_] <= step_:
+            if step_ <= 0 and self.le_cur_step.text() != '-' or self.dic_cur_ax['dic_len'][id_] <= step_:
                 if float(self.le_cur_step.text()) == 0 or float(self.le_cur_step.text()) == self.dic_cur_ax['dic_len'][id_]:
                     print('next feature')
                     temp = list(self.dic_cur_ax['dic_len'])
@@ -609,11 +597,10 @@ class WdVS(QWidget):
                         step_ = 0
                     else:
                         step_ = self.dic_cur_ax['dic_len'][id_]
-            self.le_cur_step.setText((f'{step_:0.1f}'))
+            self.le_cur_step.setText(f'{step_:0.1f}')
             geom_ = self.mlcb_layer.currentLayer().getFeature(id_).geometry()
             pi_ = geom_.interpolate(step_).asPoint()
             az_ = math.degrees(geom_.interpolateAngle(step_))
-            print('az_=', az_)
             l_ = float(self.le_hand_length.text()) / 2
             p1 = calc_proj(pi_, az_ - 90, l_)
             p2 = calc_proj(pi_, az_ + 90, l_)
@@ -670,35 +657,30 @@ class WdVS(QWidget):
 
     def vrt_cl_catalog(self):
         print('vrt_cl_catalog')
+        layers_ = QgsProject.instance().mapLayersByName('SV_clouds_tiles')
         ls_ = QgsProject.instance().mapLayers()
-        canva_crs = QgsProject.instance().crs().authid()
-        self.cloud_layer_catalog = QgsVectorLayer('Polygon?crs={}&index=yes'.format(canva_crs), 'SV_clouds_tiles', "memory")
-        fields_catalog = QgsFields()
-        fields_catalog.append(QgsField('nome_layer', QVariant.String))
-        pr_ = self.cloud_layer_catalog.dataProvider()
-        pr_.addAttributes(fields_catalog)
-        self.cloud_layer_catalog.updateFields()
+        if layers_:
+            self.cloud_layer_catalog = layers_[0]
+        else:
+            canva_crs = QgsProject.instance().crs().authid()
+            self.cloud_layer_catalog = QgsVectorLayer('Polygon?crs={}&index=yes'.format(canva_crs), 'SV_clouds_tiles', "memory")
+            fields_catalog = QgsFields()
+            fields_catalog.append(QgsField('nome_layer', QVariant.String))
+            pr_ = self.cloud_layer_catalog.dataProvider()
+            pr_.addAttributes(fields_catalog)
+            self.cloud_layer_catalog.updateFields()
 
+            style_path = os.path.join(plugin_path, 'styles', f'sv_clouds_tiles.qml')
+            self.cloud_layer_catalog.loadNamedStyle(style_path)
+            QgsProject.instance().addMapLayer(self.cloud_layer_catalog, False)
+            self.cloud_node_group = QgsProject.instance().layerTreeRoot().findGroup('__CLOUD__')
+            if not self.cloud_node_group:
+                self.cloud_node_group = QgsProject.instance().layerTreeRoot().insertGroup(-1, '__CLOUD__')
+            self.cloud_node_group.addLayer(self.cloud_layer_catalog)
         for ln_ in ls_:
             layer_ = ls_[ln_]
-            if layer_.type() == 6:
-                rec_ = layer_.extent()
-                print('rec_ =', rec_)
-                geom_ = QgsGeometry().fromRect(rec_)
-                feat_ = QgsFeature()
-                feat_.setGeometry(geom_)
-                feat_.setAttributes([layer_.name()])
-                pr_.addFeatures([feat_])
-                self.cloud_layer_catalog.updateExtents()
+            self.layer_added([layer_])
 
-        style_path = os.path.join(plugin_path, 'styles', f'sv_clouds_tiles.qml')
-        self.cloud_layer_catalog.loadNamedStyle(style_path)
-        QgsProject.instance().addMapLayer(self.cloud_layer_catalog, False)
-        self.cloud_node_group = QgsProject.instance().layerTreeRoot().findGroup('__CLOUD__')
-        if not self.cloud_node_group:
-            self.cloud_node_group = QgsProject.instance().layerTreeRoot().insertGroup(0, '__CLOUD__')
-        self.cloud_node_group.addLayer(self.cloud_layer_catalog)
-        # QgsProject.instance().layerTreeRoot().findLayer(self.cloud_layer_catalog).setItemVisibilityChecked(False)
         return
 
     def layer_added(self, slot_):
@@ -719,6 +701,10 @@ class WdVS(QWidget):
 
     def layer_removed(self, slot_):
         print('layer_removed', slot_)
+        for layer_ in slot_:
+            if layer_[:len('SV_clouds_tiles')] == 'SV_clouds_tiles':
+                self.cloud_layer_catalog = None
+                return
         if self.cloud_layer_catalog:
             self.cloud_layer_catalog.startEditing()
             for layer_ in slot_:
@@ -731,148 +717,20 @@ class WdVS(QWidget):
                 self.cloud_layer_catalog.updateExtents()
             self.cloud_layer_catalog.commitChanges()
             self.cloud_layer_catalog.triggerRepaint()
-    # def add_vrt(self, slot_):
-    #     # print('add_vrt', slot_, self.mlcb_point.additionalItems())
-    #     if not slot_:
-    #         i = 1
-    #         while QgsProject.instance().mapLayersByName(f'IV_Pontos_{i}'):
-    #             i += 1
-    #         layer_name = f'IV_Pontos_{i}'
-    #         canva_crs = QgsProject.instance().crs().authid()
-    #         layer_ = QgsVectorLayer('Point?crs={}&index=yes'.format(canva_crs),layer_name, "memory")
-    #         fields_catalog = QgsFields()
-    #         fields_catalog.append(QgsField('time', QVariant.Time))
-    #         pr_ = layer_.dataProvider()
-    #         pr_.addAttributes(fields_catalog)
-    #         layer_.updateFields()
-    #         style_path = os.path.join(plugin_path, 'styles', f'iv_pontos.qml')
-    #         layer_.loadNamedStyle(style_path)
-    #         QgsProject.instance().addMapLayer(layer_, False)
-    #         self.cloud_node_group = QgsProject.instance().layerTreeRoot().findGroup('T__CLOUD__')
-    #         if not self.cloud_node_group:
-    #             self.cloud_node_group = QgsProject.instance().layerTreeRoot().insertGroup(0, '__CLOUD__')
-    #         self.cloud_node_group.addLayer(layer_)
-    #         self.mlcb_point.setLayer(layer_)
-    #         return
 
-    # def get_cloud_layers(self, result_):
-    #     list_ = []
-    #     self.cloud_node_group = QgsProject.instance().layerTreeRoot().findGroup('TOPO__CLOUD__')
-    #     if not self.cloud_node_group:
-    #         self.cloud_node_group = QgsProject.instance().layerTreeRoot().insertGroup(0, 'TOPO__CLOUD__')
-    #
-    #     for row_ in result_:
-    #         path_ = row_[0]
-    #         layer_name = os.path.basename(r'{}'.format(path_))[:-4]
-    #         if QgsProject.instance().mapLayersByName(layer_name):
-    #             list_.append(QgsProject.instance().mapLayersByName(layer_name)[0])
-    #         else:
-    #             layer_ = QgsPointCloudLayer(path_, layer_name, 'pdal')
-    #             # crs = layer_.crs()
-    #             # crs.createFromId(QgsProject.instance().crs().authid()[5:])
-    #             layer_.setCrs(QgsProject.instance().crs())
-    #             QgsProject.instance().addMapLayer(layer_, False)
-    #             self.cloud_node_group.addLayer(layer_)
-    #             list_.append(layer_)
-    #     return list_
-
-    # def add_cloud(self):
-    #     print('add_cloud')
-    #     if not self.db:
-    #         return
-    #     self.cloud_node_group = QgsProject.instance().layerTreeRoot().findGroup('TOPO__CLOUD__')
-    #     if not self.cloud_node_group:
-    #         self.cloud_node_group = QgsProject.instance().layerTreeRoot().insertGroup(0, 'TOPO__CLOUD__')
-    #     conn_name = self.cb_db.currentText()
-    #     host_ = self.dic_dbs[conn_name]['conn']['host']['value']
-    #     port_ = self.dic_dbs[conn_name]['conn']['port']['value']
-    #     db_ = self.dic_dbs[conn_name]['conn']['db']['value']
-    #     user_ = self.dic_dbs[conn_name]['conn']['user']['value']
-    #     pass_ = self.dic_dbs[conn_name]['conn']['pass']['value']
-    #     sch_art = self.dic_dbs[conn_name]['sch_art']['alias'][0]
-    #     tab_art = self.dic_dbs[conn_name]['sch_art']['tab']['alias'][0]
-    #     fld_art_path = self.dic_dbs[conn_name]['sch_art']['fields']['fld_art_path']['alias'][0]
-    #     fld_art_name = self.dic_dbs[conn_name]['sch_art']['fields']['fld_art_name']['alias'][0]
-    #     if not QgsProject.instance().mapLayersByName(f'IV_{tab_art}'):
-    #         uri = QgsDataSourceUri()
-    #         uri.setConnection(host_, port_, db_, user_, pass_)
-    #         uri.setDataSource(sch_art, tab_art, 'geom')
-    #         layer_ = QgsVectorLayer(uri.uri(False), f'IV_{tab_art}', "postgres")
-    #         style_path = os.path.join(self.main.plugin_dir, 'styles', f'iv_articulacao_clouds.qml')
-    #         layer_.loadNamedStyle(style_path)
-    #         QgsProject.instance().addMapLayer(layer_, False)
-    #         self.cloud_node_group.addLayer(layer_)
-    #
-    #     source_ = QFileDialog.getOpenFileNames(self)
-    #     if source_:
-    #
-    #         canva_crs = QgsProject.instance().crs().authid()[5:]
-    #
-    #         for path_ in source_[0]:
-    #             if os.path.exists(path_):
-    #                 layer_name = os.path.basename(r'{}'.format(path_))[:-4]
-    #                 layer_ = QgsPointCloudLayer(path_, layer_name, 'pdal')
-    #                 # layer_.asWktPolygon()
-    #                 # geom_ = QgsGeometry().fromRect(layer_.extent())
-    #                 str_query = f"""
-    #                     INSERT INTO {sch_art}.{tab_art} (geom, {fld_art_path}, {fld_art_name})
-    #                         SELECT
-    #                             ST_Transform(ST_GeomFromText(\'{layer_.extent().asWktPolygon()}\', {canva_crs}), 4326) geom,
-    #                             \'{path_}\' {fld_art_path} ,
-    #                             \'{layer_name}\' {fld_art_name}
-    #                             WHERE
-    #                                 NOT EXISTS (
-    #                                     SELECT 1 FROM {sch_art}.{tab_art} WHERE \"{fld_art_name}\" = \'{layer_name}\')
-    #                         RETURNING id
-    #                     """
-    #                 # print(str_query)
-    #                 result_ = self.db.select_(str_query)
-    #                 if result_:
-    #                     self.db.commit_()
-    #                 else:
-    #                     # print('já existe')
-    #                     str_query = f"""
-    #                         WITH t as (SELECT ST_Transform(ST_GeomFromText(\'{layer_.extent().asWktPolygon()}\', {canva_crs}), 4326) t_geom)
-    #                         UPDATE {sch_art}.{tab_art} a
-    #                             SET
-    #                                 geom = t_geom
-    #                             FROM t
-    #                             WHERE
-    #                                 {fld_art_name} = \'{layer_name}\' and
-    #                                 not ST_Equals(geom, t_geom);
-    #                         UPDATE {sch_art}.{tab_art} a
-    #                             SET
-    #                                 {fld_art_path} = \'{path_}\'
-    #                             WHERE
-    #                                 {fld_art_name} = \'{layer_name}\' and
-    #                                 {fld_art_path} <> \'{path_}\';
-    #                         """
-    #                     self.db.query_(str_query)
     def set_track_rb(self, lt_=None):
         self.dic_layers_tools['track']['rb'].reset()
         if lt_:
             self.dic_layers_tools['track']['rb'].setToGeometry(lt_)
 
     def clear_dic_ax(self):
-        self.le_cur_step.setText('0.0')
+        self.le_cur_step.setText('-')
         self.dic_cur_ax = {}
 
     def update_session_painter(self, v_=None):
         print('update_session_paint', v_)
         if self.wdl_prof:
             self.wdl_prof.update()
-    #
-    # def rejected(self):
-    #     print('rejected')
-    #     if self.map_tool_lot:
-    #         self.iface.mapCanvas().unsetMapTool(self.map_tool_lot)
-    #     if self.map_tool_pan:
-    #         self.iface.mapCanvas().unsetMapTool(self.map_tool_pan)
-    #     try:
-    #         self.rejected.disconnect(self.reject)
-    #     except:
-    #         pass
-    #     self.close_conn()
 
 
 class SelectFootPrint(QgsMapToolIdentify):
@@ -1024,21 +882,39 @@ class ProfileView(QWidget):
         painter.setRenderHint(QPainter.Antialiasing, True)
         if self.dic_t:
             for ln_ in self.dic_l:
-                dic_c = self.dic_l[ln_]['color']
-                dic_d = self.dic_l[ln_]['pcs']
+                dic_c = self.dic_l[ln_]['color'] # class colors
+                dic_d = self.dic_l[ln_]['pcs'] # point cloud data
                 for coord_ in dic_d:
                     if not dic_d:
                         break
+                    min_ = int(self.dic_t['I_min'])
+                    max_ = int(self.dic_t['I_max'])
+                    colourmap = matplotlib.cm.get_cmap('coolwarm')
+                    normalize = matplotlib.colors.Normalize(0, self.height())
                     for dep_ in dic_d[coord_]:
                         if not dic_d:
                             break
                         d_ = dic_d[coord_][dep_]
                         c_ = d_['C']
-                        if c_ in dic_c:
+                        # if c_ in dic_c:
+                        if self.parent.cmb_pers_symb.currentText() == 'CLASS':
                             pen.setColor(dic_c[c_])
-                            pen.setCapStyle(Qt.FlatCap)
-                            painter.setPen(pen)
-                            painter.drawPoint(d_['X'], d_['Y'])
+                        elif self.parent.cmb_pers_symb.currentText() == 'RGB':
+                            pen.setColor(QColor(d_['R'], d_['G'], d_['B']))
+                        elif (self.parent.cmb_pers_symb.currentText() == 'RGB + Intensity' or
+                              self.parent.cmb_pers_symb.currentText() == 'Intensity'):
+                            i_ = int(((d_['I'] - min_) / (max_ - min_)) * 255)
+                            if self.parent.cmb_pers_symb.currentText() == 'RGB + Intensity':
+                                pen.setColor(QColor(d_['R'], d_['G'], d_['B'], i_))
+                            else:
+                                pen.setColor(QColor(i_, i_, i_))
+                        elif self.parent.cmb_pers_symb.currentText() == 'Elevation':
+                            tup_ = colourmap(normalize(d_['Y']))
+                            pen.setColor(QColor(int((1-tup_[0])*255), int((1-tup_[1])*255), int((1-tup_[2])*255)))
+                            # 'Turbo'
+                        pen.setCapStyle(Qt.FlatCap)
+                        painter.setPen(pen)
+                        painter.drawPoint(d_['X'], d_['Y'])
 
         if not self.mp_:
             self.mp_ = QPoint(int(self.width() / 2), self.height())
@@ -1166,6 +1042,7 @@ class ProfileView(QWidget):
         self.x_value = 0
         self.y_value = 999999
         self.update()
+
     # @staticmethod
     # def calc_spiral(ws_=9):
     #     x = y = 0
@@ -1182,7 +1059,7 @@ class ProfileView(QWidget):
 
     def update_painter(self, dic_):
         print('update_painter')
-        self.dic_l = dic_
+        self.dic_l = dic_ # layer data and information
         self.update()
 
 
@@ -1191,6 +1068,7 @@ class CloudThread(QThread):
 
     def __init__(self, main, parent, dic_, list_layer=None, stats=False):
         QThread.__init__(self)
+
         self.main = main
         self.parent = parent
         self.list_ = []
@@ -1199,16 +1077,22 @@ class CloudThread(QThread):
         self.dic_ = dic_
         self.list_layer = list_layer
         self.stop = False
+        self.dic_threshold = None
         self.dic_class_color = {}
         self.dic_layer_pcs = {}
         self.dic_layer_quant = {}
         self.list_pc = []
-
+        self.dic_default_class_color = {
+            0: QColor(186, 186, 186), 1: QColor(170, 170, 170), 2: QColor(170, 85, 0), 3: QColor(0, 170, 170),
+            4: QColor(85, 255, 85), 5: QColor(0, 170, 0), 6: QColor(255, 85, 85), 7: QColor(170, 0, 0),
+            8: QColor(85, 85, 85), 9: QColor(85, 255, 255), 10: QColor(170, 0, 170), 11: QColor(0, 0, 0),
+            13: QColor(255, 255, 85), 14: QColor(255, 255, 85), 15: QColor(255, 85, 255), 16: QColor(255, 255, 85),
+            17: QColor(85, 85, 255), 18: QColor(100, 100, 100), 19: QColor(225, 89, 137), 20: QColor(190, 207, 80),
+            21: QColor(152, 125, 183), 22: QColor(231, 113, 72), 23: QColor(183, 72, 75), 24: QColor(255, 158, 23),
+            25: QColor(232, 113, 141), 26: QColor(141, 90, 153), 27: QColor(243, 166, 178), 28: QColor(114, 155, 111),
+            29: QColor(213, 180, 60), 30: QColor(164, 113, 88), 31: QColor(133, 182, 111), }
 
     def run(self):
-        lt_ = []
-        lt_.append(dt.now())
-        print(lt_[-1])
         if self.stats:
             dens_ = 0
             for layer_ in self.list_layer:
@@ -1226,30 +1110,18 @@ class CloudThread(QThread):
             self.parent.le_max_dens.setText(f'{dens_:0.1f}')
             return
 
-        # area_ = self.pol_.area()
-        # quant_ = 1000
-        # press_ = 1
-        # list_ = []
-        # while press_ > 0.00001:
-        #     quant_ *= 10
-        #     dens_ = quant_ / area_
-        #     press_ = (1/dens_) ** 0.5
-        #     list_.append((press_, quant_))
-        # print(list_)
         press_ = 0.001
-        area_ = self.pol_.area()
-        # quant_ = area_ / (press_ ** 2)
         quant_ = 1000000
 
         for layer_ in self.list_layer:
-            if layer_.name() not in self.dic_class_color:
-                self.dic_class_color[layer_.name()] = {}
+            self.dic_class_color[layer_.name()] = {}
+            if layer_.renderer().type() == 'classified':
                 for cat_ in layer_.renderer().categories():
                     if cat_.renderState():
                         self.dic_class_color[layer_.name()].update({cat_.value(): cat_.color()})
-        #
-        # for max_err, p_limit in list_:
-        #     print('max_err=', max_err, 'p_limit=', p_limit)
+            else:
+                self.dic_class_color[layer_.name()] = self.dic_default_class_color
+
         self.dic_threshold = {
             'D_min': 99999.0,
             'D_max': 0.0,
@@ -1264,26 +1136,10 @@ class CloudThread(QThread):
             prov_ = layer_.dataProvider()
             layer_name = layer_.name()
 
-            if layer_name in self.dic_layer_quant and self.dic_layer_quant[layer_name] == 'break':
-                continue
-            # list_pc = prov_.identify(maxErrorInMapCoords=max_err, extentGeometry=self.pol_, pointsLimit=p_limit)
             list_pc = prov_.identify(maxErrorInMapCoords=press_, extentGeometry=self.pol_, pointsLimit=quant_)
-            print('len(list_pc)=', len(list_pc))
+
             self.dic_layer_pcs[layer_name] = list_pc
-            # print(layer_name, 'quant_=', len(list_pc))
-        #     if layer_name not in self.dic_layer_quant:
-        #         self.dic_layer_pcs[layer_name] = list_pc
-        #         self.dic_layer_quant[layer_name] = len(self.list_pc)
-        #     elif len(self.list_pc) <= self.dic_layer_quant[layer_name]:
-        #         self.dic_layer_quant[layer_name] = 'break'
-        #         # print(layer_name, 'break', len(self.list_pc), self.dic_layer_quant[layer_name])
-        #         continue
-        #     else:
-        #         self.dic_layer_quant[layer_name] = len(self.list_pc)
-        #         self.dic_layer_pcs[layer_name] = list_pc
-        #
-        # for layer_name in self.dic_layer_pcs:
-        #     list_pc = self.dic_layer_pcs[layer_name]
+
 
             if not list_pc:
                 continue
@@ -1371,9 +1227,14 @@ class CloudThread(QThread):
             dic_l[layer_name].update({'pcs': dic_0})
         self.parent.wdl_prof.update_painter(dic_l)
 
-
 def calc_proj(p_, az_, d_):
     x_ = p_.x()
     y_ = p_.y()
     az1 = math.radians(az_)
     return QgsPointXY(x_ + d_ * math.sin(az1), y_ + d_ * math.cos(az1))
+
+
+# QgsPointCloudClassifiedRenderer - layer_.renderer().type() = 'classified'
+# QgsPointCloudAttributeByRampRenderer - layer_.renderer().type() = 'ramp'
+#    layer_.renderer().attribute() = 'Intensity'
+# QgsPointCloudRgbRenderer - layer_.renderer().type() = 'rgb'
