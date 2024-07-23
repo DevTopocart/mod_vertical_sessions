@@ -23,7 +23,7 @@ hasProcessingProvider=no
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=python, point cloud
+tags=vertical session, point cloud, profile, section
 
 homepage=http://homepage
 category=Plugins
