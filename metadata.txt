@@ -13,7 +13,7 @@ email=contato@topocart.com.br
 about=This plugin is developed for Point Cloud user that wants to visualize that type of data in a vertical session.
 
 tracker=https://github.com/DevTopocart/mod_vertical_sessions/issues
-repository=http:https://github.com/DevTopocart/mod_vertical_sessions
+repository=https://github.com/DevTopocart/mod_vertical_sessions
 # End of mandatory metadata
 
 # Recommended items:
