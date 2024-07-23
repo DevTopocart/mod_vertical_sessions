@@ -11,3 +11,4 @@ In a Panel, the user can define the footprint (session area) by clicking and dra
 >1) If the Layer Style is not set to "Classification" in Layer Panel the Viewer will only show 32 classes in the default Qgis color.  
 >2) The button "Get" define a squarer area with 1m² to show the counting points inside of that area.
 
+©2024 Consultoria Técnica de Cartografia da Topocart - BR
