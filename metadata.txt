@@ -7,7 +7,7 @@ name=T Vertical Sessions
 qgisMinimumVersion=3.20
 description=Used to Vertical Sessions of Lidar Point Cloud
 version=1.03
-author=Consultoria/ Topocart
+author=Consultoria Topocart
 email=contato@topocart.com.br
 
 about=This plugin is developed for Point Cloud user that wants to visualize that type of data in a vertical session.
