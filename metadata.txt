@@ -6,7 +6,7 @@
 name=T Vertical Sessions
 qgisMinimumVersion=3.20
 description=Used to Vertical Sessions of Lidar Point Cloud
-version=1.02
+version=1.03
 author=Consultoria/ Topocart
 email=contato@topocart.com.br
 
@@ -27,7 +27,7 @@ tags=python, point cloud
 
 homepage=http://homepage
 category=Plugins
-icon=icons/icon_session.png
+icon=icons/icon_vs.png
 # experimental flag
 experimental=False
 

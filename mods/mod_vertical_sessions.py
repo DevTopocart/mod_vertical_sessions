@@ -283,14 +283,14 @@ class WdVS(QWidget):
 
         self.lb_session_logo = QLabel()
         self.lb_session_logo.setFixedSize(QSize(20, 20))
-        pixmap_ = QPixmap(os.path.join(plugin_path, 'icons/icon_session.png'))
+        pixmap_ = QPixmap(os.path.join(plugin_path, 'icons/icon_vs.png'))
         scaled_ = pixmap_.scaled(self.lb_session_logo.size(), QtCore.Qt.KeepAspectRatio)
         self.lb_session_logo.setPixmap(scaled_)
         r_ = 0
         gl_tool.addWidget(self.lb_session_logo, r_, 0)
 
-        self.lb_topo_logo = QLabel()
-        self.lb_topo_logo.setFixedSize(QSize(70, 30))
+        self.lb_topo_logo = QLabel('Footprint')
+        self.lb_topo_logo.setFixedSize(QSize(35, 15))
         pixmap_ = QPixmap(os.path.join(plugin_path, 'icons/topo_logo.png'))
         scaled_ = pixmap_.scaled(self.lb_topo_logo.size(), QtCore.Qt.KeepAspectRatio)
         self.lb_topo_logo.setPixmap(scaled_)
@@ -409,6 +409,9 @@ class WdVS(QWidget):
         wd_layer.setLayout(gl_layer)
         spt_left.addWidget(wd_layer)
 
+        rr_ = 0
+        gl_layer.addWidget(QLabel('Symbology Settings:'), rr_, 1, 1, 2)
+
         lh_ = QHBoxLayout()
         lh_.setContentsMargins(0, 0, 0, 0)
         lh_.setSpacing(1)
@@ -417,7 +420,7 @@ class WdVS(QWidget):
         self.spb_point_size.setValue(3)
         self.spb_point_size.setMaximumWidth(45)
         lh_.addWidget(self.spb_point_size)
-        rr_ = 0
+        rr_ += 1
         gl_layer.addLayout(lh_, rr_, 1, 1, 2)
 
         rr_ += 1
