@@ -23,7 +23,7 @@ hasProcessingProvider=no
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=vertical session, point cloud, profile, section
+tags=vertical session, point cloud, profile, section, Topocart
 
 homepage=https://github.com/DevTopocart/mod_vertical_sessions
 category=Plugins
