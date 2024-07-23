@@ -1,6 +1,6 @@
 # T Vertical Sessions
 The "T Vertical Sessions" plugin was developed to allow viewing and analyzing Vertical Sessions of Point Cloud.  
-![image](https://github.com/user-attachments/assets/410f3d14-fd23-46f0-ab9c-1d12bee8d065)  
+![image](https://github.com/user-attachments/assets/7ee0e464-f8a1-453b-bfd7-e048fdfd7a4e)
 
 In a Panel, the user can define the footprint (session area) by clicking and dragging on the screen freely or by configuring Width and Length and move the session area parallel to or following an axis at a defined spacing (Interval).  
 ## Vertical Sessions Viewer
